@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: pvz-backend
+  labels:
+    app.kubernetes.io/name: pvz-backend
+    app.kubernetes.io/part-of: pvz
+spec:
+  selector:
+    app.kubernetes.io/name: pvz-backend
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http
