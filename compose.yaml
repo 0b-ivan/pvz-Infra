@@ -1,0 +1,28 @@
+name: pvz
+
+services:
+  backend:
+    image: ghcr.io/0b-ivan/pvz-backend@sha256:81bb473de4ce31a2a2fdd34eb95f8e817fe47daea7a943eacb97371505bb5642
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GAME_URL: ${PVZ_GAME_URL:-http://localhost:8080}
+      BACKEND_URL: ${PVZ_BACKEND_URL:-http://localhost:3000}
+      ALLOWED_ORIGINS: ${PVZ_ALLOWED_ORIGINS:-http://localhost:8080}
+    volumes:
+      - pvz-backend-data:/data
+
+  game:
+    image: ghcr.io/0b-ivan/pvz-game@sha256:ad652f80c6d7df441cdfcb298db328cfe67bc103ba794c60f10085c4d2af7cbd
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      PVZ_BACKEND_URL: ${PVZ_BACKEND_URL:-http://localhost:3000}
+
+volumes:
+  pvz-backend-data:

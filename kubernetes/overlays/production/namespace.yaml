@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pvz-production
+  labels:
+    app.kubernetes.io/part-of: pvz
+    app.kubernetes.io/environment: production
