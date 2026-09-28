@@ -1,0 +1,75 @@
+name: Infrastructure validation
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Compose
+        run: docker compose --env-file .env.example config > /tmp/compose-rendered.yaml
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: latest
+
+      - name: Render staging
+        run: kubectl kustomize kubernetes/overlays/staging > /tmp/pvz-staging.yaml
+
+      - name: Render production
+        run: kubectl kustomize kubernetes/overlays/production > /tmp/pvz-production.yaml
+
+      - name: Reject floating or unconfigured images
+        run: |
+          if grep -E 'image: .*:(latest|unconfigured)([[:space:]]|$)' /tmp/pvz-staging.yaml /tmp/pvz-production.yaml; then
+            echo "Floating or unconfigured Kubernetes image reference found"
+            exit 1
+          fi
+
+          grep -F 'ghcr.io/0b-ivan/pvz-game@sha256:' /tmp/pvz-staging.yaml
+          grep -F 'ghcr.io/0b-ivan/pvz-backend@sha256:' /tmp/pvz-staging.yaml
+          grep -F 'ghcr.io/0b-ivan/pvz-game@sha256:' /tmp/pvz-production.yaml
+          grep -F 'ghcr.io/0b-ivan/pvz-backend@sha256:' /tmp/pvz-production.yaml
+
+  compose-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Start published stack
+        run: docker compose --env-file .env.example up -d --wait
+
+      - name: Verify stack
+        run: |
+          curl --fail --silent --show-error http://127.0.0.1:8080/healthz
+          curl --fail --silent --show-error http://127.0.0.1:3000/api/health
+          curl --fail --silent --show-error http://127.0.0.1:8080/runtime-config.js | grep -F 'http://localhost:3000'
+
+      - name: Logs
+        if: failure()
+        run: docker compose logs --no-color || true
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v --remove-orphans
