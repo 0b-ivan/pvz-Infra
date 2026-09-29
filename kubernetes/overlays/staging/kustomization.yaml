@@ -8,6 +8,7 @@ resources:
   - namespace.yaml
   - game-config.yaml
   - backend-config.yaml
+  - secrets/ghcr-pull.sops.yaml
 
 images:
   - name: ghcr.io/0b-ivan/pvz-game
@@ -30,4 +31,14 @@ patches:
     patch: |-
       - op: replace
         path: /spec/rules/0/host
-        value: pvz-staging.example.invalid
+        value: pvz-staging.obivan.org
+
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+    patch: |-
+      - op: add
+        path: /spec/template/spec/imagePullSecrets
+        value:
+          - name: ghcr-pull
