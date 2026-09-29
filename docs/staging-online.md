@@ -1,6 +1,6 @@
 # PVZ Staging online
 
-The first public staging environment uses the same K3s/Flux/SOPS/Cloudflare operating model as the existing blog stack.
+The first public staging environment uses the same K3s/Flux/SOPS/Cloudflare operating model as the existing blog stack. Flux follows the `staging` branch; production promotion remains a separate `staging` → `main` step.
 
 ## Target
 
