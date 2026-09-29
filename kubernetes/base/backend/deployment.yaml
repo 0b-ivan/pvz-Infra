@@ -18,6 +18,11 @@ spec:
         app.kubernetes.io/name: pvz-backend
         app.kubernetes.io/part-of: pvz
     spec:
+      securityContext:
+        runAsUser: 1993
+        runAsGroup: 1993
+        fsGroup: 1993
+        fsGroupChangePolicy: OnRootMismatch
       containers:
         - name: backend
           image: ghcr.io/0b-ivan/pvz-backend:unconfigured
@@ -53,6 +58,8 @@ spec:
               drop:
                 - ALL
             runAsNonRoot: true
+            runAsUser: 1993
+            runAsGroup: 1993
             seccompProfile:
               type: RuntimeDefault
       volumes:
