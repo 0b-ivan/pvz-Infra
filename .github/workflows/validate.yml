@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - staging
   workflow_dispatch:
 
 permissions:
@@ -45,8 +46,10 @@ jobs:
           grep -F 'ghcr.io/0b-ivan/pvz-backend@sha256:' /tmp/pvz-production.yaml
 
           grep -F 'staging-pvz.obivan.org' /tmp/pvz-staging.yaml
-          if grep -F 'staging-pvz.obivan.org' /tmp/pvz-staging.yaml; then
-            echo "Staging still contains the placeholder hostname"
+          grep -F 'pvz.obivan.org' /tmp/pvz-production.yaml
+
+          if grep -E 'example\.invalid' /tmp/pvz-staging.yaml /tmp/pvz-production.yaml; then
+            echo "Rendered manifests still contain placeholder hostnames"
             exit 1
           fi
 
