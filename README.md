@@ -73,14 +73,14 @@ kubectl kustomize kubernetes/overlays/staging
 kubectl kustomize kubernetes/overlays/production
 ```
 
-The committed hostnames use `example.invalid` deliberately. Replace them with the real staging and production hostnames before the first cluster deployment.
+Staging is configured for `pvz-staging.obivan.org`. Production intentionally remains on `example.invalid` until the staging gate has passed.
 
 ### Traffic model
 
 Kubernetes uses one browser-facing host per environment:
 
 ```text
-https://<pvz-host>/
+https://pvz-staging.obivan.org/
   ├── /api  -> pvz-backend:3000
   └── /     -> pvz-game:8080
 ```
@@ -97,3 +97,16 @@ The backend starts with:
 - the cluster default StorageClass
 
 This is intentional while the backend still uses SQLite, filesystem level storage and in-memory sessions.
+
+
+## Staging online
+
+The staging environment is reconciled by Flux from this repository and is publicly exposed through the existing Cloudflare Tunnel.
+
+Public hostname:
+
+```text
+https://pvz-staging.obivan.org
+```
+
+One-time cluster bootstrap and Cloudflare routing are documented in [docs/staging-online.md](docs/staging-online.md).
