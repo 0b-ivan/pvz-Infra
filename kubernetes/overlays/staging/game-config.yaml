@@ -3,4 +3,4 @@ kind: ConfigMap
 metadata:
   name: pvz-game-config
 data:
-  PVZ_BACKEND_URL: https://pvz-staging.obivan.org
+  PVZ_BACKEND_URL: https://staging-pvz.obivan.org
