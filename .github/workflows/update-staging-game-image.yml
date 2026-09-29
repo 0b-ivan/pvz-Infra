@@ -9,7 +9,6 @@ permissions:
   actions: write
   contents: write
   packages: read
-  pull-requests: write
 
 concurrency:
   group: update-staging-game-image
@@ -17,7 +16,6 @@ concurrency:
 
 env:
   IMAGE: ghcr.io/0b-ivan/pvz-game
-  UPDATE_BRANCH: bot/update-pvz-game-staging
   KUSTOMIZATION: kubernetes/overlays/staging/kustomization.yaml
 
 jobs:
@@ -86,14 +84,11 @@ jobs:
         if: steps.current.outputs.digest == steps.image.outputs.digest
         run: echo "pvz-game staging is already pinned to the published digest."
 
-      - name: Prepare update branch
+      - name: Update staging manifest
         if: steps.current.outputs.digest != steps.image.outputs.digest
         shell: bash
         run: |
           set -euo pipefail
-
-          git fetch origin staging
-          git checkout -B "$UPDATE_BRANCH" origin/staging
 
           python3 - "${{ steps.image.outputs.digest }}" <<'PY'
           from pathlib import Path
@@ -136,7 +131,7 @@ jobs:
             exit 1
           fi
 
-      - name: Commit and push update
+      - name: Commit and push staging update
         if: steps.current.outputs.digest != steps.image.outputs.digest
         shell: bash
         run: |
@@ -147,50 +142,10 @@ jobs:
 
           git add "$KUSTOMIZATION"
           git commit -m "chore(staging): update pvz-game image"
-          git push --force-with-lease origin "HEAD:$UPDATE_BRANCH"
-
-      - name: Create or refresh staging deployment PR
-        if: steps.current.outputs.digest != steps.image.outputs.digest
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          digest="${{ steps.image.outputs.digest }}"
-          short="${digest#sha256:}"
-          short="${short:0:12}"
-
-          pr_number="$(gh pr list \
-            --base staging \
-            --head "$UPDATE_BRANCH" \
-            --state open \
-            --json number \
-            --jq '.[0].number // empty')"
-
-          body="Automated staging image promotion.
-
-          \`pvz-game:staging\` resolved to:
-
-          \`$digest\`
-
-          The rendered staging manifests were validated before this PR was created."
-
-          if [[ -n "$pr_number" ]]; then
-            gh pr edit "$pr_number" \
-              --title "chore(staging): deploy pvz-game $short" \
-              --body "$body"
-            echo "Updated PR #$pr_number"
-          else
-            gh pr create \
-              --base staging \
-              --head "$UPDATE_BRANCH" \
-              --title "chore(staging): deploy pvz-game $short" \
-              --body "$body"
-          fi
+          git push origin HEAD:staging
 
       - name: Trigger infrastructure validation
         if: steps.current.outputs.digest != steps.image.outputs.digest
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh workflow run validate.yml --ref "$UPDATE_BRANCH"
+        run: gh workflow run validate.yml --ref staging
