@@ -1,0 +1,196 @@
+name: Update staging game image
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+  packages: read
+  pull-requests: write
+
+concurrency:
+  group: update-staging-game-image
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/0b-ivan/pvz-game
+  UPDATE_BRANCH: bot/update-pvz-game-staging
+  KUSTOMIZATION: kubernetes/overlays/staging/kustomization.yaml
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout staging
+        uses: actions/checkout@v4
+        with:
+          ref: staging
+          fetch-depth: 0
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve staging digest
+        id: image
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          digest="$(docker buildx imagetools inspect "${IMAGE}:staging" | awk '$1 == "Digest:" { print $2; exit }')"
+
+          if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "Could not resolve a valid digest for ${IMAGE}:staging" >&2
+            exit 1
+          fi
+
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "Resolved ${IMAGE}:staging -> $digest"
+
+      - name: Read currently pinned digest
+        id: current
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          current="$(python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          text = Path("kubernetes/overlays/staging/kustomization.yaml").read_text()
+          match = re.search(
+              r"- name: ghcr\.io/0b-ivan/pvz-game\n"
+              r"\s+newName: ghcr\.io/0b-ivan/pvz-game\n"
+              r"\s+digest: (sha256:[0-9a-f]{64})",
+              text,
+          )
+          if not match:
+              raise SystemExit("Could not find pinned pvz-game staging digest")
+          print(match.group(1))
+          PY
+          )"
+
+          echo "digest=$current" >> "$GITHUB_OUTPUT"
+          echo "Currently pinned: $current"
+
+      - name: Stop when staging is current
+        if: steps.current.outputs.digest == steps.image.outputs.digest
+        run: echo "pvz-game staging is already pinned to the published digest."
+
+      - name: Prepare update branch
+        if: steps.current.outputs.digest != steps.image.outputs.digest
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch origin staging
+          git checkout -B "$UPDATE_BRANCH" origin/staging
+
+          python3 - "${{ steps.image.outputs.digest }}" <<'PY'
+          from pathlib import Path
+          import re
+          import sys
+
+          path = Path("kubernetes/overlays/staging/kustomization.yaml")
+          digest = sys.argv[1]
+          text = path.read_text()
+
+          pattern = (
+              r"(- name: ghcr\.io/0b-ivan/pvz-game\n"
+              r"\s+newName: ghcr\.io/0b-ivan/pvz-game\n"
+              r"\s+digest: )sha256:[0-9a-f]{64}"
+          )
+          updated, count = re.subn(pattern, rf"\g<1>{digest}", text, count=1)
+          if count != 1:
+              raise SystemExit(f"Expected one pvz-game digest replacement, got {count}")
+
+          path.write_text(updated)
+          PY
+
+      - name: Set up kubectl
+        if: steps.current.outputs.digest != steps.image.outputs.digest
+        uses: azure/setup-kubectl@v4
+        with:
+          version: latest
+
+      - name: Validate rendered staging manifests
+        if: steps.current.outputs.digest != steps.image.outputs.digest
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          kubectl kustomize kubernetes/overlays/staging > /tmp/pvz-staging.yaml
+          grep -F "ghcr.io/0b-ivan/pvz-game@${{ steps.image.outputs.digest }}" /tmp/pvz-staging.yaml
+
+          if grep -E 'image: .*:(latest|unconfigured)([[:space:]]|$)' /tmp/pvz-staging.yaml; then
+            echo "Floating or unconfigured image reference found" >&2
+            exit 1
+          fi
+
+      - name: Commit and push update
+        if: steps.current.outputs.digest != steps.image.outputs.digest
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add "$KUSTOMIZATION"
+          git commit -m "chore(staging): update pvz-game image"
+          git push --force-with-lease origin "HEAD:$UPDATE_BRANCH"
+
+      - name: Create or refresh staging deployment PR
+        if: steps.current.outputs.digest != steps.image.outputs.digest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          digest="${{ steps.image.outputs.digest }}"
+          short="${digest#sha256:}"
+          short="${short:0:12}"
+
+          pr_number="$(gh pr list \
+            --base staging \
+            --head "$UPDATE_BRANCH" \
+            --state open \
+            --json number \
+            --jq '.[0].number // empty')"
+
+          body="Automated staging image promotion.
+
+          \`pvz-game:staging\` resolved to:
+
+          \`$digest\`
+
+          The rendered staging manifests were validated before this PR was created."
+
+          if [[ -n "$pr_number" ]]; then
+            gh pr edit "$pr_number" \
+              --title "chore(staging): deploy pvz-game $short" \
+              --body "$body"
+            echo "Updated PR #$pr_number"
+          else
+            gh pr create \
+              --base staging \
+              --head "$UPDATE_BRANCH" \
+              --title "chore(staging): deploy pvz-game $short" \
+              --body "$body"
+          fi
+
+      - name: Trigger infrastructure validation
+        if: steps.current.outputs.digest != steps.image.outputs.digest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run validate.yml --ref "$UPDATE_BRANCH"
