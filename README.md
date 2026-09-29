@@ -109,4 +109,6 @@ Public hostname:
 https://staging-pvz.obivan.org
 ```
 
+Flux staging follows the repository `staging` branch. Production remains tied to promoted `main` state.
+
 One-time cluster bootstrap and Cloudflare routing are documented in [docs/staging-online.md](docs/staging-online.md).
