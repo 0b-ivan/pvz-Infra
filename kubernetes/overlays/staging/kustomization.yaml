@@ -31,7 +31,7 @@ patches:
     patch: |-
       - op: replace
         path: /spec/rules/0/host
-        value: pvz-staging.obivan.org
+        value: staging-pvz.obivan.org
 
   - target:
       group: apps
