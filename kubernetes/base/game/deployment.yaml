@@ -26,6 +26,10 @@ spec:
           envFrom:
             - configMapRef:
                 name: pvz-game-config
+          volumeMounts:
+            - name: basic-auth
+              mountPath: /etc/nginx/auth
+              readOnly: true
           readinessProbe:
             httpGet:
               path: /healthz
@@ -50,3 +54,10 @@ spec:
             runAsNonRoot: true
             seccompProfile:
               type: RuntimeDefault
+      volumes:
+        - name: basic-auth
+          secret:
+            secretName: pvz-basic-auth
+            items:
+              - key: .htpasswd
+                path: .htpasswd
