@@ -16,9 +16,9 @@ existing Cloudflare Tunnel
   v
 Traefik (kube-system)
   |
-  +-- Host pvz-staging.obivan.org + /api --> pvz-backend:3000
+  +-- Host staging-pvz.obivan.org + /api --> pvz-backend:3000
   |
-  '-- Host pvz-staging.obivan.org + /    --> pvz-game:8080
+  '-- Host staging-pvz.obivan.org + /    --> pvz-game:8080
 ```
 
 No NodePort, LoadBalancer or router port-forward is required.
@@ -26,7 +26,7 @@ No NodePort, LoadBalancer or router port-forward is required.
 ## Staging hostname
 
 ```text
-https://pvz-staging.obivan.org
+https://staging-pvz.obivan.org
 ```
 
 The frontend and backend runtime configuration both use this same public origin.
@@ -82,7 +82,7 @@ First prove Traefik routing from inside the cluster:
 kubectl -n cloudflare run pvz-curl-test \
   --image=curlimages/curl:8.16.0 \
   --restart=Never --attach --rm -- \
-  curl -fsS -H 'Host: pvz-staging.obivan.org' \
+  curl -fsS -H 'Host: staging-pvz.obivan.org' \
   http://traefik.kube-system.svc.cluster.local/healthz
 ```
 
@@ -92,7 +92,7 @@ Backend route:
 kubectl -n cloudflare run pvz-api-test \
   --image=curlimages/curl:8.16.0 \
   --restart=Never --attach --rm -- \
-  curl -fsS -H 'Host: pvz-staging.obivan.org' \
+  curl -fsS -H 'Host: staging-pvz.obivan.org' \
   http://traefik.kube-system.svc.cluster.local/api/health
 ```
 
@@ -105,9 +105,9 @@ Reuse the existing remotely managed tunnel.
 Create one published application route:
 
 ```text
-Public hostname:  pvz-staging.obivan.org
+Public hostname:  staging-pvz.obivan.org
 Service URL:      http://traefik.kube-system.svc.cluster.local:80
-HTTP Host Header: pvz-staging.obivan.org
+HTTP Host Header: staging-pvz.obivan.org
 ```
 
 The explicit Host override makes Traefik's host-based Ingress match deterministic.
@@ -117,16 +117,16 @@ The explicit Host override makes Traefik's host-based Ingress match deterministi
 After the Cloudflare route is active:
 
 ```bash
-curl -fsS https://pvz-staging.obivan.org/healthz
-curl -fsS https://pvz-staging.obivan.org/api/health
-curl -fsS https://pvz-staging.obivan.org/runtime-config.js
-curl -fsSI https://pvz-staging.obivan.org/game/
+curl -fsS https://staging-pvz.obivan.org/healthz
+curl -fsS https://staging-pvz.obivan.org/api/health
+curl -fsS https://staging-pvz.obivan.org/runtime-config.js
+curl -fsSI https://staging-pvz.obivan.org/game/
 ```
 
 Expected runtime config contains:
 
 ```text
-https://pvz-staging.obivan.org
+https://staging-pvz.obivan.org
 ```
 
 Only after all four checks pass should browser gameplay testing begin.
