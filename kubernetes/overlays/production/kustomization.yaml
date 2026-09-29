@@ -23,11 +23,3 @@ replicas:
   - name: pvz-backend
     count: 1
 
-patches:
-  - target:
-      kind: Ingress
-      name: pvz
-    patch: |-
-      - op: replace
-        path: /spec/rules/0/host
-        value: pvz.obivan.org
