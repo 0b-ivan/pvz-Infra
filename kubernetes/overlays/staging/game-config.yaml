@@ -4,3 +4,4 @@ metadata:
   name: pvz-game-config
 data:
   PVZ_BACKEND_URL: https://staging-pvz.obivan.org
+  PVZ_BACKEND_INTERNAL_URL: http://pvz-backend:3000
