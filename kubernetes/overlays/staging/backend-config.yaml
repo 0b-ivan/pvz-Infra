@@ -3,9 +3,9 @@ kind: ConfigMap
 metadata:
   name: pvz-backend-config
 data:
-  GAME_URL: https://pvz-staging.example.invalid
-  BACKEND_URL: https://pvz-staging.example.invalid
-  ALLOWED_ORIGINS: https://pvz-staging.example.invalid
+  GAME_URL: https://staging-pvz.obivan.org
+  BACKEND_URL: https://staging-pvz.obivan.org
+  ALLOWED_ORIGINS: https://staging-pvz.obivan.org
   CORS_ENABLED: "true"
   USE_GITHUB_AUTH: "false"
   USE_TURNSTILE: "false"

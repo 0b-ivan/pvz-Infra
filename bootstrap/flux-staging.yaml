@@ -1,0 +1,30 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: pvz-infra
+  namespace: flux-system
+spec:
+  interval: 1m
+  ref:
+    branch: staging
+  url: https://github.com/0b-ivan/pvz-Infra
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: pvz-staging
+  namespace: flux-system
+spec:
+  interval: 1m
+  retryInterval: 30s
+  timeout: 5m
+  wait: true
+  prune: true
+  path: ./kubernetes/overlays/staging
+  sourceRef:
+    kind: GitRepository
+    name: pvz-infra
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
