@@ -6,7 +6,7 @@ metadata:
 spec:
   interval: 1m
   ref:
-    branch: main
+    branch: staging
   url: https://github.com/0b-ivan/pvz-Infra
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
