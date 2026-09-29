@@ -73,14 +73,14 @@ kubectl kustomize kubernetes/overlays/staging
 kubectl kustomize kubernetes/overlays/production
 ```
 
-Staging is configured for `pvz-staging.obivan.org`. Production intentionally remains on `example.invalid` until the staging gate has passed.
+Staging is configured for `staging-pvz.obivan.org`. Production is prepared for `pvz.obivan.org`, but remains undeployed until the staging gate has passed.
 
 ### Traffic model
 
 Kubernetes uses one browser-facing host per environment:
 
 ```text
-https://pvz-staging.obivan.org/
+https://staging-pvz.obivan.org/
   ├── /api  -> pvz-backend:3000
   └── /     -> pvz-game:8080
 ```
@@ -106,7 +106,7 @@ The staging environment is reconciled by Flux from this repository and is public
 Public hostname:
 
 ```text
-https://pvz-staging.obivan.org
+https://staging-pvz.obivan.org
 ```
 
 One-time cluster bootstrap and Cloudflare routing are documented in [docs/staging-online.md](docs/staging-online.md).
