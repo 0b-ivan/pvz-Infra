@@ -4,4 +4,3 @@ kind: Kustomization
 resources:
   - game
   - backend
-  - ingress.yaml
