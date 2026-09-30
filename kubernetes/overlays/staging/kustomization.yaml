@@ -34,3 +34,12 @@ patches:
         path: /spec/template/spec/imagePullSecrets
         value:
           - name: ghcr-pull
+  # Restart the backend so it reads the enabled admin UI from its ConfigMap.
+  - target:
+      kind: Deployment
+      name: pvz-backend
+    patch: |-
+      - op: add
+        path: /spec/template/metadata/annotations
+        value:
+          pvz.obivan.org/admin-ui: "enabled"
