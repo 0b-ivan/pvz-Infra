@@ -13,7 +13,7 @@ resources:
 images:
   - name: ghcr.io/0b-ivan/pvz-game
     newName: ghcr.io/0b-ivan/pvz-game
-    digest: sha256:e0b5ef89bcedfc789b854c092274053e1919c087b070bf2d4a30f5fcfc0d4619
+    digest: sha256:ad2a9cfd14cdb083ea05cf0447365e1ee80dc9ba48fbb6f9abee445c83c53328
   - name: ghcr.io/0b-ivan/pvz-backend
     newName: ghcr.io/0b-ivan/pvz-backend
     digest: sha256:81bb473de4ce31a2a2fdd34eb95f8e817fe47daea7a943eacb97371505bb5642
