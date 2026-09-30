@@ -7,6 +7,9 @@ data:
   BACKEND_URL: https://staging-pvz.obivan.org
   ALLOWED_ORIGINS: https://staging-pvz.obivan.org
   CORS_ENABLED: "true"
+  # Admin access is protected by the browser-facing Nginx Basic Auth.
+  USE_PUBLIC_FOLDER: "true"
+  USE_ADMIN_UI: "true"
   USE_GITHUB_AUTH: "false"
   USE_TURNSTILE: "false"
   USE_OPENAI_MODERATION: "false"

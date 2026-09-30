@@ -13,7 +13,7 @@ resources:
 images:
   - name: ghcr.io/0b-ivan/pvz-game
     newName: ghcr.io/0b-ivan/pvz-game
-    digest: sha256:a442561660505550f617fe0c13d697772137cff4d996240f932f32a71ec63c08
+    digest: sha256:e0b5ef89bcedfc789b854c092274053e1919c087b070bf2d4a30f5fcfc0d4619
   - name: ghcr.io/0b-ivan/pvz-backend
     newName: ghcr.io/0b-ivan/pvz-backend
     digest: sha256:81bb473de4ce31a2a2fdd34eb95f8e817fe47daea7a943eacb97371505bb5642
@@ -34,3 +34,12 @@ patches:
         path: /spec/template/spec/imagePullSecrets
         value:
           - name: ghcr-pull
+  # Restart the backend so it reads the enabled admin UI from its ConfigMap.
+  - target:
+      kind: Deployment
+      name: pvz-backend
+    patch: |-
+      - op: add
+        path: /spec/template/metadata/annotations
+        value:
+          pvz.obivan.org/admin-ui: "enabled"
